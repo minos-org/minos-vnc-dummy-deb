@@ -1,0 +1,72 @@
+#!/bin/sh
+
+#close stdout
+#exec 1<&-
+##close stderr
+#exec 2<&-
+##open stdout as $log_file file for read and write.
+#exec 1<> "/tmp/minos-vnc-dummy.${$}.debug"
+##redirect stderr to stdout
+#exec 2>&1
+#set -x #enable trace mode
+
+package="minos-vnc-dummy"
+package_dir="/usr/share/minos/minos-vnc-dummy"
+diverge_dir="${package_dir}/diverge"
+
+_diverge_element() {
+    _diverge__orig="${1}"
+    _diverge__new="${2}"
+    _diverge__backup="$(printf "%s\\n" "${_diverge__orig}" | busybox sed 's:/:##:g')"
+
+    if ! LC_ALL=C dpkg-divert --list "${package}" | \
+        grep -xFq "diversion of ${_diverge__orig} to ${diverge_dir}/${_diverge__backup} by ${package}"; then
+        #busybox grep don't support the -x flag in old releases
+        busybox mkdir -p "${diverge_dir}"
+        dpkg-divert --package "${package}" --rename --add \
+            --divert "${diverge_dir}/${_diverge__backup}" "${_diverge__orig}"
+
+        busybox ln -s "${_diverge__new}" "${_diverge__orig}" || :
+    fi
+}
+
+_undiverge_element() {
+    _diverge__orig="${1}"
+    _diverge__new="${2}"
+    _diverge__backup="$(printf "%s\\n" "${_diverge__orig}" | busybox sed 's:/:##:g')"
+
+    if LC_ALL=C dpkg-divert --list "${package}" | \
+        grep -xFq "diversion of ${_diverge__orig} to ${diverge_dir}/${_diverge__backup} by ${package}"; then
+        #busybox grep don't support the -x flag in old releases
+        busybox rm -rf "${_diverge__orig}"
+        dpkg-divert --package "${package}" --rename --remove "${_diverge__orig}"
+        busybox rmdir "${diverge_dir}" 2>/dev/null || :
+    fi
+}
+
+case "${1}" in
+    configure)
+        _diverge_element /etc/X11/xorg.conf "${package_dir}/etc##X11##xorg.conf"
+        if [ -x "/etc/init.d/${package}" ] || [ -e "/etc/init/${package}.conf" ]; then
+            if [ ! -e "/etc/init/${package}.conf" ]; then
+                update-rc.d "${package}" defaults >/dev/null
+            fi
+        fi
+        ;;
+
+    remove|purge|abort-upgrade|abort-deconfigure|abort-remove)
+            _undiverge_element /etc/X11/xorg.conf "${package_dir}/etc##X11##xorg.conf"
+            if [ -x "/etc/init.d/minos-vnc-dummy" ] || [ -e "/etc/init/minos-vnc-dummy.conf" ]; then
+                invoke-rc.d "${package}" stop || exit "${?}"
+            fi
+        ;;
+
+    *)
+        printf "%s\\n" "${0} called with unknown argument \`${1}'" 1>&2
+        exit 1
+        ;;
+esac
+
+#DEBHELPER#
+
+exit 0

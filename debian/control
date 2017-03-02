@@ -1,0 +1,17 @@
+Source: minos-vnc-dummy
+Section: misc
+Priority: optional
+Maintainer: Javier López <chilicuil@ubuntu.com>
+Build-Depends: debhelper (>= 9), dh-exec (>= 0.12)
+Standards-Version: 3.9.5
+Homepage: http://minos.io/
+Vcs-Git: git://github.com/minos-org/minos-vnc-dummy-deb.git
+Vcs-Browser: https://github.com/minos-org/minos-vnc-dummy-deb.git
+
+Package: minos-vnc-dummy
+Architecture: any
+Depends: ${misc:Depends}, xserver-xorg-core | xserver-xorg | xorg, xinit, xserver-xorg-video-dummy, xserver-xorg-input-void, x11vnc, lsb-base(>= 3.2-14)
+Recommends: x-display-manager, x-window-manager, x-terminal-emulator,
+Description: Setup VNC services on headless servers.
+ This package is provided mainly to enjoy Minos Desktop on virtual headless
+ servers but can be used with any Desktop environment.

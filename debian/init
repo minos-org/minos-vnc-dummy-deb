@@ -1,0 +1,122 @@
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides:          minos-vnc-dummy
+# Required-Start:    $remote_fs $network $slim
+# Required-Stop:     $remote_fs $network $slim
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: VNC service on headless environment
+# Description:       This daemon provides VNC facilities to use Minos Desktop
+#                    on virtual headless servers however it can be used with
+#                    any Desktop environment.
+### END INIT INFO
+
+PATH=/sbin:/usr/sbin:/bin:/usr/bin
+DESC="minos-vnc-dummy daemon"
+NAME="minos-vnc-dummy"
+DAEMON="x11vnc"
+SCRIPTNAME="/etc/init.d/${NAME}"
+
+#read configuration variable file if it is present
+[ -r "/etc/default/${NAME}" ] && . "/etc/default/${NAME}"
+
+#sanitize missing settings
+[ -z "${ENABLED}" ]    && ENABLED="yes"
+[ -z "${ARGS}" ]       && ARGS="-display :0 -bg -auth /var/run/slim.auth -safer -shared -tag minos-vnc-dummy"
+#[ -z "${ARGS}" ]      && ARGS="-display :0 -bg -auth /var/run/slim.auth -safer -shared -tag minos-vnc-dummy -logappend /var/log/${NAME}.log"
+[ -z "${NICE_LEVEL}" ] && NICE_LEVEL="-5"
+
+#load the VERBOSE setting and other rcS variables
+. /lib/init/vars.sh
+
+#define LSB log_* functions.
+#depend on lsb-base (>= 3.2-14) to ensure that this file is present
+#and status_of_proc is working.
+. /lib/lsb/init-functions
+
+#exit if the package is not installed
+command -v "${DAEMON}" >/dev/null 2>&1 || {
+    log_warning_msg "Not starting ${NAME} daemon, '${DAEMON}' wasn't found"
+    exit 0
+}
+
+_start() {
+    #0 if daemon has been started
+    #1 if daemon was already running
+    #2 if daemon could not be started
+
+    if [ X"${ENABLED}" != X"yes" ]; then
+        log_warning_msg "Not starting ${NAME} daemon, disabled via /etc/default/${NAME}"
+        return 2
+    fi
+
+    start-stop-daemon              \
+        --start                    \
+        --nicelevel "${NICELEVEL}" \
+        --quiet                    \
+        --exec "$(command -v "${DAEMON}")" -- $ARGS
+
+    RETVAL="$?"; sleep 1
+    return "${RETVAL}"
+}
+
+_stop() {
+    #0 if daemon has been stopped
+    #1 if daemon was already stopped
+    #2 if daemon could not be stopped
+    #other if a failure occurred
+    pids="$(ps -aux | grep "x11vnc" | grep "tag minos-vnc-dummy" | awk '{print $2}')"
+
+    if [ -n "${pids}" ]; then
+        kill ${pids}
+        RETVAL="${?}"
+        [ "${RETVAL}" = "1" ] && RETVAL="2" || sleep 1
+    else
+        RETVAL="1"
+    fi
+
+    return "${RETVAL}"
+}
+
+case "${1}" in
+    start)
+        [ "${VERBOSE}" != no ] && log_daemon_msg "Starting ${DESC}" "${NAME}"
+        _start
+        log_end_msg "${?}"
+        ;;
+
+    stop)
+        [ "${VERBOSE}" != no ] && log_daemon_msg "Stopping ${DESC}" "${NAME}"
+        _stop
+        log_end_msg "${?}"
+        ;;
+
+    status)
+        status_of_proc "${DAEMON}" "${NAME}"
+        exit "${?}"
+        ;;
+
+    restart|force-reload)
+        log_daemon_msg "Restarting ${DESC}" "${NAME}"
+        _stop
+        case "$?" in
+            0|1)
+                _start
+                case "$?" in
+                    0) log_end_msg 0 ;;
+                    1) log_end_msg 1 ;; # Old process is still running
+                    *) log_end_msg 1 ;; # Failed to start
+                esac
+            ;;
+
+            *) #failed to stop
+               log_end_msg 1
+            ;;
+            esac
+        ;;
+
+    *)
+        echo "Usage: ${SCRIPTNAME} {start|stop|status|restart|force-reload}" >&2
+        exit 3
+        ;;
+esac
