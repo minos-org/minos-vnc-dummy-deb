@@ -11,7 +11,7 @@
 #set -x #enable trace mode
 
 package="minos-vnc-dummy"
-package_dir="/usr/share/minos/minos-vnc-dummy"
+package_dir="/usr/share/minos/${package}"
 diverge_dir="${package_dir}/diverge"
 
 _diverge_element() {
@@ -47,6 +47,10 @@ _undiverge_element() {
 case "${1}" in
     configure)
         _diverge_element /etc/X11/xorg.conf "${package_dir}/etc##X11##xorg.conf"
+        #xserver-xorg-core on Trusty doesn't provide /usr/bin/X but /usr/bin/Xorg
+        if [ ! -e /usr/bin/X ] && [ -e /usr/bin/Xorg ]; then
+            _diverge_element /usr/bin/X /usr/bin/Xorg
+        fi
         if [ -x "/etc/init.d/${package}" ] || [ -e "/etc/init/${package}.conf" ]; then
             if [ ! -e "/etc/init/${package}.conf" ]; then
                 update-rc.d "${package}" defaults >/dev/null
@@ -56,8 +60,9 @@ case "${1}" in
 
     remove|purge|abort-upgrade|abort-deconfigure|abort-remove)
             _undiverge_element /etc/X11/xorg.conf "${package_dir}/etc##X11##xorg.conf"
-            if [ -x "/etc/init.d/minos-vnc-dummy" ] || [ -e "/etc/init/minos-vnc-dummy.conf" ]; then
-                invoke-rc.d "${package}" stop || exit "${?}"
+            _undiverge_element /usr/bin/X /usr/bin/Xorg
+            if [ -x "/etc/init.d/${package}" ] || [ -e "/etc/init/${package}.conf" ]; then
+                invoke-rc.d "${package}" stop >/dev/null 2>&1 || :
             fi
         ;;
 

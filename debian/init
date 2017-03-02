@@ -12,8 +12,8 @@
 ### END INIT INFO
 
 PATH=/sbin:/usr/sbin:/bin:/usr/bin
-DESC="minos-vnc-dummy daemon"
 NAME="minos-vnc-dummy"
+DESC="${NAME} daemon"
 DAEMON="x11vnc"
 SCRIPTNAME="/etc/init.d/${NAME}"
 
@@ -22,8 +22,8 @@ SCRIPTNAME="/etc/init.d/${NAME}"
 
 #sanitize missing settings
 [ -z "${ENABLED}" ]    && ENABLED="yes"
-[ -z "${ARGS}" ]       && ARGS="-display :0 -bg -auth /var/run/slim.auth -safer -shared -tag minos-vnc-dummy"
-#[ -z "${ARGS}" ]      && ARGS="-display :0 -bg -auth /var/run/slim.auth -safer -shared -tag minos-vnc-dummy -logappend /var/log/${NAME}.log"
+[ -z "${ARGS}" ]       && ARGS="-display :0 -bg -auth /var/run/slim.auth -safer -shared -tag ${NAME}"
+#[ -z "${ARGS}" ]      && ARGS="-display :0 -bg -auth /var/run/slim.auth -safer -shared -tag ${NAME} -logappend /var/log/${NAME}.log"
 [ -z "${NICE_LEVEL}" ] && NICE_LEVEL="-5"
 
 #load the VERBOSE setting and other rcS variables
@@ -65,7 +65,7 @@ _stop() {
     #1 if daemon was already stopped
     #2 if daemon could not be stopped
     #other if a failure occurred
-    pids="$(ps -aux | grep "x11vnc" | grep "tag minos-vnc-dummy" | awk '{print $2}')"
+    pids="$(ps -aux | grep "x11vnc" | grep "tag ${NAME}" | awk '{print $2}')"
 
     if [ -n "${pids}" ]; then
         kill ${pids}
