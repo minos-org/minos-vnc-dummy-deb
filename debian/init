@@ -22,8 +22,8 @@ SCRIPTNAME="/etc/init.d/${NAME}"
 
 #sanitize missing settings
 [ -z "${ENABLED}" ]    && ENABLED="yes"
-[ -z "${ARGS}" ]       && ARGS="-display :0 -bg -auth /var/run/slim.auth -safer -shared -tag ${NAME}"
-#[ -z "${ARGS}" ]      && ARGS="-display :0 -bg -auth /var/run/slim.auth -safer -shared -tag ${NAME} -logappend /var/log/${NAME}.log"
+[ -z "${ARGS}" ]       && ARGS="-display :0 -bg -auth guess -safer -shared -tag ${NAME}"
+#[ -z "${ARGS}" ]      && ARGS="-display :0 -bg -auth guess -safer -shared -tag ${NAME} -logappend /var/log/${NAME}.log"
 [ -z "${NICE_LEVEL}" ] && NICE_LEVEL="-5"
 
 #load the VERBOSE setting and other rcS variables
